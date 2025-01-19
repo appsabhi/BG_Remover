@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Removal</title>
+    <link rel="stylesheet" href="/bg_home.css">
+    <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.6.3/nouislider.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+</head>
+<body>
+    <span class="loader" id="loder"></span>
+
+    <div class="container">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <img
+            id="preview_img"
+            src=""
+            alt=""
+            style="position: relative; z-index: 10"
+          />
+  
+          <img
+            id="filtered_image"
+            src=""
+            alt=""
+            style="position: relative; z-index: 20"
+            crossorigin="anonymous"
+          />
+  
+          <input
+            type="file"
+            id="imageInput"
+            onchange="preview_image()"
+            name="image"
+            accept="image/*"
+            required
+          />
+  
+          <br />
+        <a href="" id="download" style="display: none"></a>
+
+          <button value="" onclick="remove_bg(event)">
+            <i class="fas fa-upload"></i>Remove Backround
+          </button>
+
+
+          <script>
+                function preview_image() {
+        let files = document.getElementById("imageInput").files;
+        let imageTag = document.getElementById("preview_img");
+
+        if (files.length === 0) {
+          alert("Please select an image.");
+          return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          currentImage = new Image();
+          currentImage.src = e.target.result;
+
+          currentImage.onload = () => {
+            imageTag.src = currentImage.src;
+            imageTag.style.display = "block";
+          };
+        };
+
+        reader.readAsDataURL(files[0]);
+      }
+  
+
+      
+      async function remove_bg(event) {
+        event.preventDefault();
+
+        let loader = document.getElementById("loder");
+        let preview_imagetag = document.getElementById("preview_img");
+        let imagetag = document.getElementById("filtered_image");
+        let form = document.getElementById("uploadForm");
+        let files = document.getElementById("imageInput").files;
+
+        if (files.length === 0) {
+          alert("Please select an image.");
+          return;
+        }
+
+        let file = files[0];
+        let img = new Image();
+//   console.log("image",img)
+        img.src = URL.createObjectURL(file);
+
+        // img.onload = async function () {
+        //   if (img.width > 5000 || img.height > 5000) {
+        //     alert(
+        //       "The image size exceeds 5000x5000 pixels. Please upload a smaller image."
+        //     );
+        //     return;
+        //   }
+
+          // Show loader
+          loader.style.display = "block";
+
+          try {
+            let form_data = new FormData();
+            form_data.append("image", file);
+
+            let response = await fetch("/remove_bg", {
+              method: "POST",
+              body: form_data,
+            });
+
+            console.log(response);
+            if (!response.ok) {
+              // Handle errors gracefully
+              let errorData = await response.json();
+              alert("error occured during removing background", error.message);
+            }
+
+            let data = await response.json();
+            let res = await fetch(data.image_url, { method: "GET" });
+            if (!res.ok) {
+              let error = await res.json();
+              console.log(error);
+              alert(error.message);
+              return;
+            }
+
+            if (data.success) {
+              preview_imagetag.style.display = "none";
+
+              imagetag.src = data.image_url; // Display processed image
+
+              imagetag.style.display = "block";
+
+              downloadimage(data.image_url);
+            }
+          } catch (error) {
+            alert("error occured during removing background", error.message)
+            console.log(error.message); // Display user-friendly error message
+          } finally {
+            // Hide loader in both success and error cases
+            loader.style.display = "none";
+          }
+        };
+
+        // img.onerror = function () {
+        //   alert(
+        //     "There was an issue loading the image. Please try another file."
+        //   );
+        // };
+    //   }
+
+
+    async function downloadimage(imageUrl) {
+        try {
+          // Fetch the image as a blob
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+
+          // Create an <a> element and trigger download
+          let link = document.getElementById("download");
+          console.log(link)
+          link.style.display = "inline-block";
+          link.href = url;
+
+          link.download = `processed_img${Date.now()}`; // Name of the file to be downloaded
+          document.body.appendChild(link);
+          link.click(); // Simulate click to download
+          document.body.removeChild(link); // Clean up
+
+          // Release the object URL to free up memory
+        } catch (error) {
+          console.log(error.message);
+        }
+      }
+          </script>
+  
+</body>
+</html>
