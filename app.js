@@ -11,6 +11,6 @@ app.use(express.urlencoded({extended:true}))
 app.use(Route)
 
 
-app.listen("2000",()=>{
-    console.log("app listening on port 2000")
+app.listen("4000",()=>{
+    console.log("app listening on port 4000")
 })
